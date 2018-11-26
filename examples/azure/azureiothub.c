@@ -77,9 +77,9 @@ static int mStopRead = 0;
  * https://azure.microsoft.com/en-us/documentation/articles/iot-hub-sas-tokens/#using-sas-tokens-as-a-device
  */
 #define MAX_BUFFER_SIZE         1024    /* Maximum size for network read/write callbacks */
-#define AZURE_HOST              "LifeBox.azure-devices.net"  //"wolfmqtt.azure-devices.net"  //"47.106.97.11" 
+#define AZURE_HOST              "LifeBox.azure-devices.net" //"LifeBox.azure-devices.net"  //"wolfmqtt.azure-devices.net"  //"47.106.97.11" 
 #define AZURE_DEVICE_ID         "Lifebox" //"demoDevice"
-#define AZURE_KEY               "ITH9rA5A1o1uZbaKOxGRFK3WStEJSvCNrK0Hvythosk=" //"Vd8RHMAFPyRnAozkNCNFIPhVSffyZkB13r/YqiTWq5s=" /* Base64 Encoded */
+#define AZURE_KEY               "ITH9rA5A1o1uZbaKOxGRFK3WStEJSvCNrK0Hvythosk=" //"ITH9rA5A1o1uZbaKOxGRFK3WStEJSvCNrK0Hvythosk=" //"Vd8RHMAFPyRnAozkNCNFIPhVSffyZkB13r/YqiTWq5s=" /* Base64 Encoded */
 #define AZURE_QOS               MQTT_QOS_1 /* Azure IoT Hub does not yet support QoS level 2 */
 #define AZURE_KEEP_ALIVE_SEC    DEFAULT_KEEP_ALIVE_SEC
 #define AZURE_CMD_TIMEOUT_MS    DEFAULT_CMD_TIMEOUT_MS
@@ -243,6 +243,8 @@ static int SasTokenCreate(char* sasToken, int sasTokenLen)
 int azureiothub_test(MQTTCtx *mqttCtx)
 {
     int rc = MQTT_CODE_SUCCESS, i;
+	static int count = 0;
+	char buf[100] = { 0 };
 
     switch (mqttCtx->stat)
     {
@@ -430,6 +432,7 @@ int azureiothub_test(MQTTCtx *mqttCtx)
 
         case WMQ_PUB:
         {
+		publish:
             mqttCtx->stat = WMQ_PUB;
 
             rc = MqttClient_Publish(&mqttCtx->client, &mqttCtx->publish);
@@ -454,7 +457,7 @@ int azureiothub_test(MQTTCtx *mqttCtx)
 
             do {
                 /* Try and read packet */
-                rc = MqttClient_WaitMessage(&mqttCtx->client, mqttCtx->cmd_timeout_ms);
+                rc = MqttClient_WaitMessage(&mqttCtx->client, 10000);
 
                 /* check for test mode or stop */
                 if (mStopRead || mqttCtx->test_mode) {
@@ -501,6 +504,8 @@ int azureiothub_test(MQTTCtx *mqttCtx)
                     /* Keep Alive */
                     PRINTF("Keep-alive timeout, sending ping");
 
+					count++;
+
                     rc = MqttClient_Ping(&mqttCtx->client);
                     if (rc == MQTT_CODE_CONTINUE) {
                         return rc;
@@ -510,6 +515,20 @@ int azureiothub_test(MQTTCtx *mqttCtx)
                             MqttClient_ReturnCodeToString(rc), rc);
                         break;
                     }
+					if (count%2 == 0)
+					{
+						sprintf(buf, "Count:%d", count);
+						/* Publish Topic */
+						XMEMSET(&mqttCtx->publish, 0, sizeof(MqttPublish));
+						mqttCtx->publish.retain = 0;
+						mqttCtx->publish.qos = mqttCtx->qos;
+						mqttCtx->publish.duplicate = 0;
+						mqttCtx->publish.topic_name = AZURE_EVENT_TOPIC;
+						mqttCtx->publish.packet_id = mqtt_get_packetid();
+						mqttCtx->publish.buffer = buf;
+						mqttCtx->publish.total_len = strlen(buf);
+						goto publish;
+					}
                 }
                 else if (rc != MQTT_CODE_SUCCESS) {
                     /* There was an error */
