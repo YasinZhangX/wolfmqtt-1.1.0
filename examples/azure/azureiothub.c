@@ -77,9 +77,9 @@ static int mStopRead = 0;
  * https://azure.microsoft.com/en-us/documentation/articles/iot-hub-sas-tokens/#using-sas-tokens-as-a-device
  */
 #define MAX_BUFFER_SIZE         1024    /* Maximum size for network read/write callbacks */
-#define AZURE_HOST              "LifeBox.azure-devices.net" //"LifeBox.azure-devices.net"  //"wolfmqtt.azure-devices.net"  //"47.106.97.11" 
-#define AZURE_DEVICE_ID         "Lifebox" //"demoDevice"
-#define AZURE_KEY               "ITH9rA5A1o1uZbaKOxGRFK3WStEJSvCNrK0Hvythosk=" //"ITH9rA5A1o1uZbaKOxGRFK3WStEJSvCNrK0Hvythosk=" //"Vd8RHMAFPyRnAozkNCNFIPhVSffyZkB13r/YqiTWq5s=" /* Base64 Encoded */
+#define AZURE_HOST              "lifeboxtestd7ec7.azure-devices.net" //"LifeBox.azure-devices.net"  //"wolfmqtt.azure-devices.net"  //"47.106.97.11" 
+#define AZURE_DEVICE_ID         "GPSbox" //"Lifebox" //"demoDevice"
+#define AZURE_KEY               "VpAynFPQ2rxT7VhsYoAlYxl9TeM1rdOgdBoISUcZtdg=" //"ITH9rA5A1o1uZbaKOxGRFK3WStEJSvCNrK0Hvythosk=" //"Vd8RHMAFPyRnAozkNCNFIPhVSffyZkB13r/YqiTWq5s=" /* Base64 Encoded */
 #define AZURE_QOS               MQTT_QOS_1 /* Azure IoT Hub does not yet support QoS level 2 */
 #define AZURE_KEEP_ALIVE_SEC    DEFAULT_KEEP_ALIVE_SEC
 #define AZURE_CMD_TIMEOUT_MS    DEFAULT_CMD_TIMEOUT_MS
@@ -96,6 +96,8 @@ static int mStopRead = 0;
 
 #define AZURE_MSGS_TOPIC_NAME   "devices/"AZURE_DEVICE_ID"/messages/devicebound/#" /* subscribe */
 #define AZURE_EVENT_TOPIC       "devices/"AZURE_DEVICE_ID"/messages/events/" /* publish */
+
+#define GPS_MSG					"\"Latitude\": 25.006850559685628,\"Longitude\": 72.79941813417841,\"connectionString\": \"HostName=lifeboxtestd7ec7.azure-devices.net;DeviceId=GPSbox;SharedAccessKey=VpAynFPQ2rxT7VhsYoAlYxl9TeM1rdOgdBoISUcZtdg=\""
 
 
 /* Encoding Support */
@@ -244,7 +246,7 @@ int azureiothub_test(MQTTCtx *mqttCtx)
 {
     int rc = MQTT_CODE_SUCCESS, i;
 	static int count = 0;
-	char buf[100] = { 0 };
+	char buf[200] = { 0 };
 
     switch (mqttCtx->stat)
     {
@@ -517,7 +519,8 @@ int azureiothub_test(MQTTCtx *mqttCtx)
                     }
 					if (count%2 == 0)
 					{
-						sprintf(buf, "Count:%d", count);
+						sprintf(buf, "{%s,\"count\":%d}", GPS_MSG, count);
+						printf("buf: %s\r\n", buf);
 						/* Publish Topic */
 						XMEMSET(&mqttCtx->publish, 0, sizeof(MqttPublish));
 						mqttCtx->publish.retain = 0;
